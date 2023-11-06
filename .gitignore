@@ -22,3 +22,7 @@ go.work
 
 .DS_Store
 public/
+public_old/
+assets/
+content/
+templates/

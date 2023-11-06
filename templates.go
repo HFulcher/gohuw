@@ -15,12 +15,16 @@ func getTemplates() []string {
 			return e
 		}
 		if filepath.Ext(d.Name()) == ".html" {
-			files = append(files, s)
+			if d.Name() != "baseof.html" {
+				files = append(files, s)
+			}
 		}
 		return nil
 	}); err != nil {
 		log.Println("ERROR", err)
 	}
+
+	log.Println(files)
 
 	return files
 }
@@ -30,14 +34,13 @@ func parseTemplates(f []string) {
 
 	for _, tmplPath := range f {
 		name := filepath.Base(string(tmplPath))
-		tmpl, err := template.ParseFiles(tmplPath)
+		log.Println(tmplPath)
+		tmpl, err := template.ParseFiles("./templates/baseof.html", "./"+tmplPath)
 		if err != nil {
 			panic(err)
 		}
 		templates[name] = tmpl
 	}
-
-	log.Println(templates)
 
 	applyTemplates(templates)
 }
@@ -46,41 +49,36 @@ func applyTemplates(tmpls map[string]*template.Template) {
 	for _, page := range markdownFiles {
 		var templateName string
 
-		layout, ok := page.metadata["layout"].(string)
-		// log.Println(layout)
+		layout, ok := page.Metadata["layout"].(string)
 
 		if !ok {
-			// log.Printf("Layout not found for %s, defaulting to single.html", page.title)
+			log.Printf("Layout not found for %s, defaulting to single.html", page.Title)
 			templateName = "single.html"
 		} else {
+			log.Printf("Layout found for %s", page.Title)
 			templateName = layout + ".html"
 		}
 
-		// log.Println(templateName)
-
 		tmpl, ok := tmpls[templateName]
-
-		// log.Println(tmpl)
 
 		if !ok {
 			panic("Template not found")
 		}
 
-		err := os.MkdirAll(filepath.Join("public", filepath.Dir(page.destination)), os.ModePerm)
+		err := os.MkdirAll(filepath.Join("public", filepath.Dir(page.Destination)), os.ModePerm)
 		if err != nil {
 			panic(err)
 		}
-		outputFile, err := os.Create(filepath.Join("public", page.destination))
+
+		outputFile, err := os.Create(filepath.Join("public", page.Destination))
 		if err != nil {
 			panic(err)
 		}
 		defer outputFile.Close()
 
-		log.Println(tmpl.Name())
-		log.Println(page.title)
-
 		// Execute the template with the page's content and metadata
-		if err := tmpl.Execute(outputFile, page); err != nil {
+		if err := tmpl.ExecuteTemplate(outputFile, "baseof", page); err != nil {
+			log.Println("Throwing error")
 			panic(err)
 		}
 

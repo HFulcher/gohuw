@@ -15,5 +15,31 @@ func build() {
 
 	parseMarkdown(files)
 	//parseAssets()
+
+	// ts, err := template.ParseFiles("./templates/baseof.html", "./templates/home.html")
+	// if err != nil {
+	// 	panic(err.Error())
+	// }
+
+	// log.Println(ts.Name())
+	// log.Println(ts.Tree)
+	// log.Println(ts.Tree.Root.Nodes)
+
+	// outputFile, err := os.Create("test.html")
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// defer outputFile.Close()
+
+	// data := MarkdownFile{
+	// 	Title:       "Hello",
+	// 	Path:        "",
+	// 	Destination: "",
+	// 	Content:     "This is some content",
+	// 	Metadata:    nil,
+	// }
+
+	// err = ts.ExecuteTemplate(outputFile, "baseof", data)
 	parseTemplates(templates)
+
 }

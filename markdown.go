@@ -25,15 +25,16 @@ var md = goldmark.New(
 	goldmark.WithRendererOptions(
 		html.WithHardWraps(),
 		html.WithXHTML(),
+		html.WithUnsafe(),
 	),
 )
 
 type MarkdownFile struct {
-	title       string
-	path        string
-	destination string
-	content     string
-	metadata    map[string]interface{}
+	Title       string
+	Path        string
+	Destination string
+	Content     string
+	Metadata    map[string]interface{}
 }
 
 func getContent() []string {
@@ -70,15 +71,15 @@ func parseMarkdown(f []string) {
 		metaData := meta.Get(ctx)
 
 		page := MarkdownFile{
-			title:       "",
-			path:        file,
-			destination: destination,
-			content:     buf.String(),
-			metadata:    metaData,
+			Title:       "",
+			Path:        file,
+			Destination: destination,
+			Content:     buf.String(),
+			Metadata:    metaData,
 		}
 
 		if title, ok := metaData["title"].(string); ok {
-			page.title = title
+			page.Title = title
 		}
 
 		markdownFiles = append(markdownFiles, page)

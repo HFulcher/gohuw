@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"io"
 	"io/fs"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -30,13 +29,17 @@ var md = goldmark.New(
 )
 
 type MarkdownFile struct {
-	Site        map[string]interface{}
 	Title       string
 	Slug        string
 	Path        string
 	Destination string
 	Content     string
 	Metadata    map[string]interface{}
+}
+
+type ContentType struct {
+	IndexFile    MarkdownFile
+	ContentFiles []MarkdownFile
 }
 
 func getSingle() []string {
@@ -56,19 +59,33 @@ func getSingle() []string {
 	return paths
 }
 
-func getContent() []string {
-	var paths []string
+func getContent() map[string][]string {
+	paths := make(map[string][]string)
 
-	if err := filepath.WalkDir("./content", func(s string, d fs.DirEntry, e error) error {
-		if e != nil {
-			return e
+	items, err := os.ReadDir("./content")
+	if err != nil {
+		panic(err)
+	}
+
+	for _, item := range items {
+		if item.IsDir() {
+			var subItems []string
+
+			if err := filepath.WalkDir("./content/"+item.Name(), func(s string, d fs.DirEntry, e error) error {
+				if e != nil {
+					return e
+				}
+
+				if filepath.Ext(d.Name()) == ".md" {
+					subItems = append(subItems, s)
+				}
+				return nil
+			}); err != nil {
+				panic(err)
+			}
+
+			paths[item.Name()] = subItems
 		}
-		if filepath.Ext(d.Name()) == ".md" {
-			paths = append(paths, s)
-		}
-		return nil
-	}); err != nil {
-		log.Println("ERROR", err)
 	}
 
 	return paths
@@ -89,12 +106,11 @@ func parseMarkdown(f []string) []MarkdownFile {
 		}
 
 		destination := strings.Replace(strings.TrimPrefix(file, "content/"), ".md", ".html", -1)
-		slug := strings.Replace(strings.TrimPrefix(destination, "public/"), ".html", "", -1)
+		slug := strings.TrimSuffix(strings.Replace(strings.TrimPrefix(destination, "public/"), ".html", "", -1), "index")
 
 		metaData := meta.Get(ctx)
 
 		page := MarkdownFile{
-			Site:        config,
 			Title:       "",
 			Slug:        slug,
 			Path:        file,
@@ -111,6 +127,59 @@ func parseMarkdown(f []string) []MarkdownFile {
 	}
 
 	return mdFiles
+}
+
+func parseContent(f map[string][]string) map[string]ContentType {
+	parsedFiles := make(map[string]ContentType)
+
+	for key, files := range f {
+		var indexFile MarkdownFile
+		var mdFiles []MarkdownFile
+
+		for _, file := range files {
+			in, _ := os.Open(file)
+			fileStream, _ := io.ReadAll(in)
+
+			var buf bytes.Buffer
+			ctx := parser.NewContext()
+
+			if err := md.Convert(fileStream, &buf, parser.WithContext(ctx)); err != nil {
+				panic(err)
+			}
+
+			destination := strings.Replace(strings.TrimPrefix(file, "content/"), ".md", ".html", -1)
+			slug := strings.TrimSuffix(strings.Replace(strings.TrimPrefix(destination, "public/"), ".html", "", -1), "index")
+
+			metaData := meta.Get(ctx)
+
+			page := MarkdownFile{
+				Title:       "",
+				Slug:        slug,
+				Path:        file,
+				Destination: destination,
+				Content:     buf.String(),
+				Metadata:    metaData,
+			}
+
+			if title, ok := metaData["title"].(string); ok {
+				page.Title = title
+			}
+
+			if getFilenameWithoutExt(file) == "index" {
+				indexFile = page
+			} else {
+				mdFiles = append(mdFiles, page)
+			}
+
+		}
+
+		parsedFiles[key] = ContentType{
+			IndexFile:    indexFile,
+			ContentFiles: mdFiles,
+		}
+	}
+
+	return parsedFiles
 }
 
 func getFilenameWithoutExt(path string) string {

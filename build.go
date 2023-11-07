@@ -9,8 +9,8 @@ import (
 var singlePaths []string
 var singleFiles []MarkdownFile
 
-var contentPaths []string
-var contentFiles []MarkdownFile
+var contentPaths map[string][]string
+var contentFiles map[string]ContentType
 
 var templatePaths []string
 var templates map[string]*template.Template
@@ -20,16 +20,15 @@ var assetPaths []string
 func build() {
 
 	singlePaths = getSingle()
-
 	contentPaths = getContent()
 	templatePaths = getTemplates()
 	assetPaths = getAssets()
 
 	singleFiles = parseMarkdown(singlePaths)
-	contentFiles = parseMarkdown(contentPaths)
+	contentFiles = parseContent(contentPaths)
 	templates = parseTemplates(templatePaths)
 	parseAssets(assetPaths)
 
 	buildFiles(singleFiles, templates)
-	buildFiles(contentFiles, templates)
+	buildContent(contentFiles, templates)
 }

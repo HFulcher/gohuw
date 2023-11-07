@@ -27,5 +27,6 @@ assets/
 content/
 templates/
 config.json
+*.html
 *.md
 static/

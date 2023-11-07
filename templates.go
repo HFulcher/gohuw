@@ -8,6 +8,17 @@ import (
 	"path/filepath"
 )
 
+type SingleData struct {
+	Site map[string]interface{}
+	Page MarkdownFile
+}
+
+type ContentData struct {
+	Site  map[string]interface{}
+	Page  MarkdownFile
+	Pages []MarkdownFile
+}
+
 func getTemplates() []string {
 	var paths []string
 
@@ -57,7 +68,7 @@ func buildFiles(files []MarkdownFile, tmpls map[string]*template.Template) {
 		tmpl, ok := tmpls[templateName]
 
 		if !ok {
-			panic("Template not found")
+			tmpl = tmpls["single.html"]
 		}
 
 		err := os.MkdirAll(filepath.Join("public", filepath.Dir(page.Destination)), os.ModePerm)
@@ -71,11 +82,104 @@ func buildFiles(files []MarkdownFile, tmpls map[string]*template.Template) {
 		}
 		defer outputFile.Close()
 
+		pageData := SingleData{
+			Site: config,
+			Page: page,
+		}
+
 		// Execute the template with the page's content and metadata
-		if err := tmpl.ExecuteTemplate(outputFile, "baseof", page); err != nil {
+		if err := tmpl.ExecuteTemplate(outputFile, "baseof", pageData); err != nil {
 			log.Println("Throwing error")
 			panic(err)
 		}
 
 	}
+}
+
+func buildContent(files map[string]ContentType, tmpls map[string]*template.Template) {
+	for _, content := range files {
+		var templateName string
+
+		indexFile := content.IndexFile
+
+		layout, ok := indexFile.Metadata["layout"].(string)
+
+		if !ok {
+			templateName = "list.html"
+		} else {
+			templateName = layout + ".html"
+		}
+
+		tmpl, ok := tmpls[templateName]
+
+		if !ok {
+			tmpl = tmpls["list.html"]
+		}
+
+		err := os.MkdirAll(filepath.Join("public", filepath.Dir(indexFile.Destination)), os.ModePerm)
+		if err != nil {
+			panic(err)
+		}
+
+		outputFile, err := os.Create(filepath.Join("public", indexFile.Destination))
+		if err != nil {
+			panic(err)
+		}
+		defer outputFile.Close()
+
+		contentData := ContentData{
+			Site:  config,
+			Page:  indexFile,
+			Pages: content.ContentFiles,
+		}
+
+		log.Println(filepath.Join("public", indexFile.Destination))
+
+		// Execute the template with the page's content and metadata
+		if err := tmpl.ExecuteTemplate(outputFile, "baseof", contentData); err != nil {
+			log.Println("Throwing error")
+			panic(err)
+		}
+
+		for _, page := range content.ContentFiles {
+			var templateName string
+
+			layout, ok := page.Metadata["layout"].(string)
+
+			if !ok {
+				templateName = "single.html"
+			} else {
+				templateName = layout + ".html"
+			}
+
+			tmpl, ok := tmpls[templateName]
+
+			if !ok {
+				tmpl = tmpls["single.html"]
+			}
+
+			err := os.MkdirAll(filepath.Join("public", filepath.Dir(page.Destination)), os.ModePerm)
+			if err != nil {
+				panic(err)
+			}
+
+			outputFile, err := os.Create(filepath.Join("public", page.Destination))
+			if err != nil {
+				panic(err)
+			}
+			defer outputFile.Close()
+
+			singleData := SingleData{
+				Site: config,
+				Page: page,
+			}
+
+			// Execute the template with the page's content and metadata
+			if err := tmpl.ExecuteTemplate(outputFile, "baseof", singleData); err != nil {
+				log.Println("Throwing error")
+				panic(err)
+			}
+		}
+	}
+
 }

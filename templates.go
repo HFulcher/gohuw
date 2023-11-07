@@ -9,14 +9,15 @@ import (
 )
 
 func getTemplates() []string {
-	var files []string
+	var paths []string
+
 	if err := filepath.WalkDir("./templates", func(s string, d fs.DirEntry, e error) error {
 		if e != nil {
 			return e
 		}
 		if filepath.Ext(d.Name()) == ".html" {
 			if d.Name() != "baseof.html" {
-				files = append(files, s)
+				paths = append(paths, s)
 			}
 		}
 		return nil
@@ -24,38 +25,32 @@ func getTemplates() []string {
 		log.Println("ERROR", err)
 	}
 
-	log.Println(files)
-
-	return files
+	return paths
 }
 
-func parseTemplates(f []string) {
-	templates := make(map[string]*template.Template)
-
+func parseTemplates(f []string) map[string]*template.Template {
+	tmpls := make(map[string]*template.Template)
 	for _, tmplPath := range f {
 		name := filepath.Base(string(tmplPath))
-		log.Println(tmplPath)
 		tmpl, err := template.ParseFiles("./templates/baseof.html", "./"+tmplPath)
 		if err != nil {
 			panic(err)
 		}
-		templates[name] = tmpl
+		tmpls[name] = tmpl
 	}
 
-	applyTemplates(templates)
+	return tmpls
 }
 
-func applyTemplates(tmpls map[string]*template.Template) {
-	for _, page := range markdownFiles {
+func buildFiles(files []MarkdownFile, tmpls map[string]*template.Template) {
+	for _, page := range files {
 		var templateName string
 
 		layout, ok := page.Metadata["layout"].(string)
 
 		if !ok {
-			log.Printf("Layout not found for %s, defaulting to single.html", page.Title)
 			templateName = "single.html"
 		} else {
-			log.Printf("Layout found for %s", page.Title)
 			templateName = layout + ".html"
 		}
 

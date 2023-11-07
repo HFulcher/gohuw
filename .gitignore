@@ -26,3 +26,6 @@ public_old/
 assets/
 content/
 templates/
+config.json
+*.md
+static/

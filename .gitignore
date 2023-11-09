@@ -31,3 +31,4 @@ config.json
 *.md
 static/
 ./gohuw
+bin/

@@ -133,8 +133,6 @@ func buildContent(files map[string]ContentType, tmpls map[string]*template.Templ
 			Pages: content.ContentFiles,
 		}
 
-		log.Println(filepath.Join("public", indexFile.Destination))
-
 		// Execute the template with the page's content and metadata
 		if err := tmpl.ExecuteTemplate(outputFile, "baseof", contentData); err != nil {
 			log.Println("Throwing error")

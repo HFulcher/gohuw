@@ -2,11 +2,16 @@ package main
 
 import (
 	"bytes"
+	"fmt"
+	"html/template"
 	"io"
 	"io/fs"
+	"log"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
+	"time"
 
 	"github.com/yuin/goldmark"
 	meta "github.com/yuin/goldmark-meta"
@@ -22,8 +27,6 @@ var md = goldmark.New(
 		parser.WithAutoHeadingID(),
 	),
 	goldmark.WithRendererOptions(
-		html.WithHardWraps(),
-		html.WithXHTML(),
 		html.WithUnsafe(),
 	),
 )
@@ -33,7 +36,7 @@ type MarkdownFile struct {
 	Slug        string
 	Path        string
 	Destination string
-	Content     string
+	Content     template.HTML
 	Metadata    map[string]interface{}
 }
 
@@ -115,12 +118,16 @@ func parseMarkdown(f []string) []MarkdownFile {
 			Slug:        slug,
 			Path:        file,
 			Destination: destination,
-			Content:     buf.String(),
+			Content:     template.HTML(buf.String()),
 			Metadata:    metaData,
 		}
 
 		if title, ok := metaData["title"].(string); ok {
 			page.Title = title
+		}
+
+		if date, ok := metaData["date"].(string); ok {
+			page.Metadata["date"] = getDate(date)
 		}
 
 		mdFiles = append(mdFiles, page)
@@ -157,7 +164,7 @@ func parseContent(f map[string][]string) map[string]ContentType {
 				Slug:        slug,
 				Path:        file,
 				Destination: destination,
-				Content:     buf.String(),
+				Content:     template.HTML(buf.String()),
 				Metadata:    metaData,
 			}
 
@@ -171,6 +178,20 @@ func parseContent(f map[string][]string) map[string]ContentType {
 				mdFiles = append(mdFiles, page)
 			}
 
+		}
+
+		sort.Slice(mdFiles[:], func(i, j int) bool {
+			iDate, _ := time.Parse(time.RFC3339, mdFiles[i].Metadata["date"].(string))
+			jDate, _ := time.Parse(time.RFC3339, mdFiles[j].Metadata["date"].(string))
+
+			// Use Before method to compare the time values.
+			return iDate.After(jDate)
+		})
+
+		for _, file := range mdFiles {
+			if date, ok := file.Metadata["date"].(string); ok {
+				file.Metadata["date"] = getDate(date)
+			}
 		}
 
 		parsedFiles[key] = ContentType{
@@ -189,4 +210,17 @@ func getFilenameWithoutExt(path string) string {
 	ext := filepath.Ext(filenameWithExt)
 	// Return the filename without the extension.
 	return filenameWithExt[0 : len(filenameWithExt)-len(ext)]
+}
+
+func getDate(f string) string {
+	t, err := time.Parse(time.RFC3339, f)
+	if err != nil {
+		panic(err)
+	}
+
+	// Format the date to "Oct 11, 2022"
+	formattedDate := fmt.Sprintf("%v %v, %v", t.Month().String()[:3], t.Day(), t.Year())
+	log.Println(formattedDate)
+
+	return formattedDate
 }

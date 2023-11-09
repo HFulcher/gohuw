@@ -28,6 +28,7 @@ func main() {
 	if len(os.Args) >= 2 {
 		switch os.Args[1] {
 		case "dev":
+			config["IsProduction"] = false
 			devCmd.Parse(os.Args[2:])
 			startDev(*devPort, *devDirectory, *devWatch)
 
@@ -36,6 +37,7 @@ func main() {
 			os.Exit(1)
 		}
 	} else {
+		config["IsProduction"] = true
 		build()
 	}
 }

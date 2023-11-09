@@ -6,7 +6,6 @@ import (
 	"html/template"
 	"io"
 	"io/fs"
-	"log"
 	"os"
 	"path/filepath"
 	"sort"
@@ -220,7 +219,6 @@ func getDate(f string) string {
 
 	// Format the date to "Oct 11, 2022"
 	formattedDate := fmt.Sprintf("%v %v, %v", t.Month().String()[:3], t.Day(), t.Year())
-	log.Println(formattedDate)
 
 	return formattedDate
 }

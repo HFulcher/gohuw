@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 type SingleData struct {
@@ -71,12 +72,20 @@ func buildFiles(files []MarkdownFile, tmpls map[string]*template.Template) {
 			tmpl = tmpls["single.html"]
 		}
 
-		err := os.MkdirAll(filepath.Join("public", filepath.Dir(page.Destination)), os.ModePerm)
+		topPath := "public"
+		filename := page.Destination
+
+		if !strings.HasPrefix(filename, "index") {
+			topPath = filepath.Join(topPath, strings.Split(filename, ".")[0])
+			filename = "index.html"
+		}
+
+		err := os.MkdirAll(filepath.Join(topPath, filepath.Dir(filename)), os.ModePerm)
 		if err != nil {
 			panic(err)
 		}
 
-		outputFile, err := os.Create(filepath.Join("public", page.Destination))
+		outputFile, err := os.Create(filepath.Join(topPath, filename))
 		if err != nil {
 			panic(err)
 		}

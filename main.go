@@ -1,5 +1,4 @@
 // TODO: Top level search for pages, all other content that is "blog friendly" then stored in /content
-// Adding a comment to test repository mirroring
 
 package main
 

@@ -2,7 +2,6 @@ package search
 
 import (
 	"bytes"
-	"fmt"
 	"html/template"
 	"io"
 	"io/fs"
@@ -78,11 +77,16 @@ func SearchContent(dir string) (Directory, error) {
 			}
 
 			metaData := meta.Get(ctx)
-			destination := "./public/" + strings.Replace(strings.TrimPrefix(path, "content/"), ".md", ".html", -1)
-			slug := strings.TrimSuffix(strings.Replace(entry.Name(), ".md", "", -1), "index")
 
-			fmt.Println(destination)
-			fmt.Println(slug)
+            var destination string
+
+            if (len(strings.Split(path, "/")) == 2) && (entry.Name() != "index.md") {
+                destination = "./public/" + strings.Replace(entry.Name(), ".md", "", -1) + "/index.html"
+            } else {
+                destination = "./public/" + strings.Replace(strings.TrimPrefix(path, "content/"), ".md", ".html", -1)
+            }
+
+            slug := strings.TrimSuffix(strings.Replace(strings.Replace(destination, ".html", "", -1), "./public/", "", -1), "index")
 
 			file := MarkdownFile{
 				Metadata: metaData,
@@ -101,8 +105,8 @@ func SearchContent(dir string) (Directory, error) {
 }
 
 func SearchTemplates(dir string) (map[string]*template.Template, error) {
-    var rawTemplates []string
-    templates := make(map[string]*template.Template)
+	var rawTemplates []string
+	templates := make(map[string]*template.Template)
 
 	err := filepath.WalkDir(dir, func(path string, info fs.DirEntry, err error) error {
 		if err != nil {
@@ -120,16 +124,16 @@ func SearchTemplates(dir string) (map[string]*template.Template, error) {
 		return map[string]*template.Template{}, err
 	}
 
-    for _, templatePath := range rawTemplates {
-        name := filepath.Base(templatePath)
-        tmpl, err := template.ParseFiles("./templates/baseof.html", "./"+templatePath)
+	for _, templatePath := range rawTemplates {
+		name := filepath.Base(templatePath)
+		tmpl, err := template.ParseFiles("./templates/baseof.html", "./"+templatePath)
 
-        if err != nil {
-            return map[string]*template.Template{}, err
-        }
+		if err != nil {
+			return map[string]*template.Template{}, err
+		}
 
-        templates[name] = tmpl
-    }
+		templates[name] = tmpl
+	}
 
 	return templates, err
 

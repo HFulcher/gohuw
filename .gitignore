@@ -32,3 +32,4 @@ config.json
 static/
 ./gohuw
 bin/
+gohuw

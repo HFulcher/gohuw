@@ -1,6 +1,9 @@
 package search
 
 import (
+    "sort"
+    "fmt"
+    "time"
 	"bytes"
 	"html/template"
 	"io"
@@ -88,6 +91,7 @@ func SearchContent(dir string) (Directory, error) {
 
             slug := strings.TrimSuffix(strings.Replace(strings.Replace(destination, ".html", "", -1), "./public/", "", -1), "index")
 
+
 			file := MarkdownFile{
 				Metadata: metaData,
 				Slug:     slug,
@@ -95,9 +99,32 @@ func SearchContent(dir string) (Directory, error) {
 				Content:  template.HTML(buf.String()),
 			}
 
+
 			files = append(files, file)
 		}
 	}
+
+    sort.Slice(files[:], func(i, j int) bool {
+        iDate := time.Time{}
+        jDate := time.Time{}
+
+        if dateStr, ok := files[i].Metadata["date"].(string); ok {
+            iDate, _ = time.Parse(time.RFC3339, dateStr)
+        }
+
+        if dateStr, ok := files[j].Metadata["date"].(string); ok {
+            jDate, _ = time.Parse(time.RFC3339, dateStr)
+        }
+
+        // Use Before method to compare the time values.
+        return iDate.After(jDate)
+    })
+
+    for _, file := range files {
+        if date, ok := file.Metadata["date"].(string); ok {
+            file.Metadata["date"] = getDate(date)
+        }
+    }
 
 	direc.Files = files
 
@@ -137,4 +164,16 @@ func SearchTemplates(dir string) (map[string]*template.Template, error) {
 
 	return templates, err
 
+}
+
+func getDate(f string) string {
+	t, err := time.Parse(time.RFC3339, f)
+	if err != nil {
+		panic(err)
+	}
+
+	// Format the date to "Oct 11, 2022"
+	formattedDate := fmt.Sprintf("%v %v, %v", t.Month().String()[:3], t.Day(), t.Year())
+
+	return formattedDate
 }

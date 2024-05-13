@@ -11,9 +11,12 @@ type PageData struct {
 	Site  map[string]interface{}
 	Page  search.MarkdownFile
 	Pages []search.MarkdownFile
+    FullUrl string
 }
 
-func BuildFiles(files search.Directory, templates map[string]*template.Template, config map[string]interface{}) error {
+func BuildFiles(files search.Directory, templates map[string]*template.Template, config map[string]interface{}) ([]PageData, error) {
+    var pages []PageData
+
 	for _, file := range files.Files {
 		var templateName string
 		layout, ok := file.Metadata["layout"].(string)
@@ -48,6 +51,7 @@ func BuildFiles(files search.Directory, templates map[string]*template.Template,
 			Site:  config,
 			Page:  file,
 			Pages: files.Files,
+            FullUrl: config["Url"].(string) + "/" + file.Slug, 
 		}
 
 		err = template.ExecuteTemplate(writtenFile, "baseof", pageData)
@@ -55,11 +59,33 @@ func BuildFiles(files search.Directory, templates map[string]*template.Template,
 		if err != nil {
 			panic(err)
 		}
+
+        pages = append(pages, pageData)
 	}
 
 	for _, subdir := range files.Subdirectories {
-		BuildFiles(subdir, templates, config)
+        subpages, err := BuildFiles(subdir, templates, config)
+
+        if err != nil {
+            panic(err)
+        }
+
+        pages = append(pages, subpages...)
 	}
 
-	return nil
+	return pages, nil
+}
+
+func BuildSitemap(pages []PageData) {
+    sitemap, err := os.Create("./public/sitemap.txt")
+
+    if err != nil {
+        panic(err)
+    }
+
+    for _, page := range pages {
+        sitemap.WriteString(page.FullUrl + "\n")
+    }
+
+    sitemap.Close()
 }

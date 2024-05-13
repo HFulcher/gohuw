@@ -66,7 +66,13 @@ func buildSite() {
 		return
 	}
 
-	build.BuildFiles(contentFiles, templateFiles, config)
+    pages, err := build.BuildFiles(contentFiles, templateFiles, config)
+
+    if err != nil {
+        panic(err)
+    }
+
+    build.BuildSitemap(pages)
 }
 
 func PrintContent(contentFiles search.Directory) {
@@ -86,7 +92,7 @@ func startDev() {
 
 	log.Println("Starting dev mode")
 	buildSite()
-	log.Printf("Serving on port %s", 8100)
+	log.Printf("Serving on port %s", "8100")
 	log.Printf("Serving files from %s", "public")
 	log.Printf("Watching for changes from %s", ".")
 

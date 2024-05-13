@@ -14,9 +14,6 @@ Drop the binary into the folder containing your website and either run:
 
 - `./gohuw` - Compile your folder into a static website in `public/`
 - `./gohuw dev` - Run a localhost server that serves your website from `public/`. This will rebuild when any file in the folder changes.
-    - `-p` (Defaults to `8100`) - Specify the port to serve from
-    - `-s` (Default to `public/`) - Directory to serve files from
-    - `-w` (Default to `.`) - Directory to watch for changes from
 
 It should be structured in the following way:
 
@@ -33,7 +30,7 @@ root
 |  |- single.html
 |  |- list.html
 |  |- other_template.html
-|- assets/ 
+|- static/ 
 |- public/ 
 |- index.md 
 |- any_other_page.md 
@@ -68,16 +65,14 @@ You have access to a number of useful items in your template:
     - `.Site.Url` - In dev mode this will default to `localhost:<port specified>`. If not in dev mode this needs to be set in `config.json` as the base Url.
     - `.Site.IsProduction` - A boolean that is true when `./gohuw` is run and false when `./gohuw dev` is run. Useful for filtering out production only pieces of template (e.g. analytics trackers).
 - `.Page` - This contains information and content about the current page.
-    - `.Page.Title` - The title of the markdown file specified in the `title` frontmatter field. If this field is not present `.Page.Title` defaults to an empty string.
     - `.Page.Slug` - The Url path of the page. This does not include the base part of the Url.
     - `.Page.Path` - The filepath of the markdown file.
-    - `.Page.Destination` - The filepath of the converted HTML file.
     - `.Page.Content` - The contents of the markdown file converted to HTML. This is primarily what you will use to populate your HTML from the templates.
     - `.Page.Metadata` - All fields from the frontmatter. These are accessible as follows `.Page.Metadata['field_name'].
-- `.Pages` (`content/x/index.md` files only) - This provides a list of Markdown files from the relevant content folder in reverse chronological order. This is useful for producing list pages.
+- `.Pages` - This provides a list of Markdown files from the relevant content folder in reverse chronological order. This is useful for producing list pages.
 
 
-### `assets/`
+### `static/`
 This is where your static resources should be stored. This folder will be copied as is to a `static/` folder in `public/`.
 
 

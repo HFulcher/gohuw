@@ -1,14 +1,19 @@
 package main
 
 import (
+	"encoding/json"
+	"flag"
+	"fmt"
+	"github.com/fsnotify/fsnotify"
+	"huwfulcher/gohuw/internal/assets"
+	"huwfulcher/gohuw/internal/build"
+	"huwfulcher/gohuw/internal/search"
 	"log"
 	"net/http"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
-
-	"github.com/fsnotify/fsnotify"
 )
 
 var watcher *fsnotify.Watcher
@@ -20,29 +25,85 @@ var excludedDirs = []string{
 	// Add more directories you want to exclude
 }
 
-func startDev(port string, directory string, watchDirectory string) {
-	config["Url"] = "http://localhost:" + port
+var config map[string]interface{}
+
+func main() {
+	configFile, err := os.ReadFile("config.json")
+	if err != nil {
+		panic(err)
+	}
+
+	json.Unmarshal([]byte(configFile), &config)
+
+	devCmd := flag.NewFlagSet("dev", flag.ExitOnError)
+
+	if len(os.Args) >= 2 {
+		switch os.Args[1] {
+		case "dev":
+			config["IsProduction"] = false
+			devCmd.Parse(os.Args[2:])
+			startDev()
+
+		default:
+			fmt.Println("Command not recognised. Please try again")
+			os.Exit(1)
+		}
+	} else {
+		config["Url"] = "http://localhost"
+		config["IsProduction"] = true
+		buildSite()
+	}
+
+}
+
+func buildSite() {
+	contentFiles, err := search.SearchContent("content")
+	templateFiles, err := search.SearchTemplates("templates")
+	assets.GetAssets()
+
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+
+	build.BuildFiles(contentFiles, templateFiles, config)
+}
+
+func PrintContent(contentFiles search.Directory) {
+	fmt.Println("\n\nDirectory: ", contentFiles.Name)
+
+	for _, file := range contentFiles.Files {
+		fmt.Println(file.Path)
+	}
+
+	for _, subdir := range contentFiles.Subdirectories {
+		PrintContent(subdir)
+	}
+}
+
+func startDev() {
+	config["Url"] = "http://localhost:8100"
 
 	log.Println("Starting dev mode")
-	build()
-	log.Printf("Serving on port %s", port)
-	log.Printf("Serving files from %s", directory)
-	log.Printf("Watching for changes from %s", watchDirectory)
+	buildSite()
+	log.Printf("Serving on port %s", 8100)
+	log.Printf("Serving files from %s", "public")
+	log.Printf("Watching for changes from %s", ".")
 
-	fs := http.FileServer(http.Dir(directory))
+	fs := http.FileServer(http.Dir("public"))
 	http.Handle("/", removeHTMLExtension(fs))
 
 	errChan := make(chan error, 1)
 
 	go func() {
-		errChan <- http.ListenAndServe(":"+port, nil)
+		errChan <- http.ListenAndServe(":8100", nil)
 	}()
 
 	go func() {
 		watcher, _ = fsnotify.NewWatcher()
 		defer watcher.Close()
 
-		if err := filepath.Walk(watchDirectory, watchDir); err != nil {
+		if err := filepath.Walk(".", watchDir); err != nil {
 			log.Println("ERROR", err)
 		}
 
@@ -56,7 +117,7 @@ func startDev(port string, directory string, watchDirectory string) {
 				// watch for events
 				case event := <-watcher.Events:
 					log.Printf("%s changed, rebuilding", event.Name)
-					build()
+					buildSite()
 
 					// watch for errors
 				case err := <-watcher.Errors:

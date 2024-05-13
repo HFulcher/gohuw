@@ -41,6 +41,7 @@ func main() {
 		switch os.Args[1] {
 		case "dev":
 			config["IsProduction"] = false
+            config["Url"] = "http://localhost"
 			devCmd.Parse(os.Args[2:])
 			startDev()
 
@@ -49,7 +50,6 @@ func main() {
 			os.Exit(1)
 		}
 	} else {
-		config["Url"] = "http://localhost"
 		config["IsProduction"] = true
 		buildSite()
 	}
